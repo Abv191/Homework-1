@@ -28,7 +28,7 @@ def remove_empty_folders(folder_path):
                 os.rmdir(dir_path)
 
 
-def sort_files(folder_path):
+def sort_files_with_path(folder_path):
     remove_empty_folders(folder_path)  # Удаление пустых папок
 
     categories = {key: [] for key in EXTENSIONS.keys()}
@@ -50,7 +50,7 @@ def sort_files(folder_path):
             if item in EXTENSIONS.keys():
                 continue
 
-            sort_files(item_path)
+            sort_files_with_path(item_path)
         elif os.path.isfile(item_path):
             extension = item.split(".")[-1].upper()
             all_extensions.append(extension)
@@ -83,18 +83,4 @@ def sort_files(folder_path):
                     break
 
     print(f"Folder: {folder_path}")
-    for category, files in categories.items():
-        print(f"{category.capitalize()}: {', '.join(files)}")
-
-    return categories, all_extensions
-
-
-if __name__ == "__main__":
-    folder_path = input("Введите путь к папке: ")
-    sorted_categories, all_extensions = sort_files(folder_path)
-
-    known_extensions = set(all_extensions).intersection(set(sum(EXTENSIONS.values(), [])))
-    print(f"\nИзвестные расширения: {', '.join(known_extensions)}")
-
-    unknown_extensions = [ext for ext in all_extensions if ext not in known_extensions]
-    print(f"Неизвестные расширения: {', '.join(unknown_extensions)}")
+ 
