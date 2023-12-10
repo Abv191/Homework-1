@@ -28,59 +28,73 @@ def remove_empty_folders(folder_path):
                 os.rmdir(dir_path)
 
 
-def sort_files_with_path(folder_path):
-    remove_empty_folders(folder_path)  # Удаление пустых папок
+def sort(folder_path):
+    def sort_files(folder_path):
+        remove_empty_folders(folder_path)  # Удаление пустых папок
 
-    categories = {key: [] for key in EXTENSIONS.keys()}
-    all_extensions = []
+        categories = {key: [] for key in EXTENSIONS.keys()}
+        all_extensions = []
 
-    folder_name = os.path.basename(folder_path)
-    transliterated_folder_name = transliterate_text(folder_name)
-    new_folder_path = os.path.join(os.path.dirname(folder_path), transliterated_folder_name)
+        folder_name = os.path.basename(folder_path)
+        transliterated_folder_name = transliterate_text(folder_name)
+        new_folder_path = os.path.join(os.path.dirname(folder_path), transliterated_folder_name)
 
-    if folder_path != new_folder_path:
-        os.rename(folder_path, new_folder_path)
-        folder_path = new_folder_path
+        if folder_path != new_folder_path:
+            os.rename(folder_path, new_folder_path)
+            folder_path = new_folder_path
 
-    for item in os.listdir(folder_path):
-        item_path = os.path.join(folder_path, item)
+        for item in os.listdir(folder_path):
+            item_path = os.path.join(folder_path, item)
 
-        if os.path.isdir(item_path):
-            # Исключаем сортировку данных в подпапках с названиями "images", "videos", "documents", "music" и "archives"
-            if item in EXTENSIONS.keys():
-                continue
+            if os.path.isdir(item_path):
+                if item in EXTENSIONS.keys():
+                    continue
 
-            sort_files_with_path(item_path)
-        elif os.path.isfile(item_path):
-            extension = item.split(".")[-1].upper()
-            all_extensions.append(extension)
+                sort_files(item_path)
+            elif os.path.isfile(item_path):
+                extension = item.split(".")[-1].upper()
+                all_extensions.append(extension)
 
-            for category, extensions in EXTENSIONS.items():
-                if extension in extensions:
-                    new_name = transliterate_text(item.split(".")[0])
-                    new_name = new_name.replace(" ", "_")
-                    new_name = f"{new_name}.{extension}"
-                    new_item_path = os.path.join(folder_path, new_name)
+                for category, extensions in EXTENSIONS.items():
+                    if extension in extensions:
+                        new_name = transliterate_text(item.split(".")[0])
+                        new_name = new_name.replace(" ", "_")
+                        new_name = f"{new_name}.{extension}"
+                        new_item_path = os.path.join(folder_path, new_name)
 
-                    os.rename(item_path, new_item_path)
-                    categories[category].append(new_name)
+                        os.rename(item_path, new_item_path)
+                        categories[category].append(new_name)
 
-                    # Создание папок и перемещение файлов
-                    new_folder = os.path.join(folder_path, category)
-                    os.makedirs(new_folder, exist_ok=True)
-                    shutil.move(new_item_path, os.path.join(new_folder, new_name))
+                        new_folder = os.path.join(folder_path, category)
+                        os.makedirs(new_folder, exist_ok=True)
+                        shutil.move(new_item_path, os.path.join(new_folder, new_name))
 
-                    # Распаковка архива в отдельную папку
-                    if category == "archives":
-                        archive_name = os.path.splitext(new_name)[0]
-                        archive_folder = os.path.join(new_folder, archive_name)
-                        os.makedirs(archive_folder, exist_ok=True)
+                        if category == "archives":
+                            archive_name = os.path.splitext(new_name)[0]
+                            archive_folder = os.path.join(new_folder, archive_name)
+                            os.makedirs(archive_folder, exist_ok=True)
 
-                        extract_files(os.path.join(new_folder, new_name), archive_folder)
+                            extract_files(os.path.join(new_folder, new_name), archive_folder)
 
-                        os.remove(os.path.join(new_folder, new_name))
+                            os.remove(os.path.join(new_folder, new_name))
 
-                    break
+                        break
 
-    print(f"Folder: {folder_path}")
- 
+        print(f"Folder: {folder_path}")
+        for category, files in categories.items():
+            print(f"{category.capitalize()}: {', '.join(files)}")
+
+        return categories, all_extensions
+
+    sorted_categories, all_extensions = sort_files(folder_path)
+
+    known_extensions = set(all_extensions).intersection(set(sum(EXTENSIONS.values(), [])))
+    print(f"\nИзвестные расширения: {', '.join(known_extensions)}")
+
+    unknown_extensions = [ext for ext in all_extensions if ext not in known_extensions]
+    print(f"Неизвестные расширения: {', '.join(unknown_extensions)}")
+
+    return sorted_categories
+
+
+sort(r"file_path")
