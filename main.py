@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import patoolib
 from transliterate import translit
@@ -24,46 +25,30 @@ def remove_empty_folders(folder_path):
     for root, dirs, files in os.walk(folder_path, topdown=False):
         for directory in dirs:
             dir_path = os.path.join(root, directory)
-            if not os.listdir(dir_path):  # Проверяем, пустая ли папка
+            if not os.listdir(dir_path):  # Check if folder is empty
                 os.rmdir(dir_path)
 
 
 def sort(folder_path):
     def sort_files(folder_path):
-        remove_empty_folders(folder_path)  # Удаление пустых папок
+        sorted_categories = {category: [] for category in EXTENSIONS.keys()}
+        all_extensions = set()
 
-        categories = {key: [] for key in EXTENSIONS.keys()}
-        all_extensions = []
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                extension = file.split('.')[-1].upper()
 
-        folder_name = os.path.basename(folder_path)
-        transliterated_folder_name = transliterate_text(folder_name)
-        new_folder_path = os.path.join(os.path.dirname(folder_path), transliterated_folder_name)
+                for category, extensions_list in EXTENSIONS.items():
+                    if extension in extensions_list:
+                        sorted_categories[category].append(file)
 
-        if folder_path != new_folder_path:
-            os.rename(folder_path, new_folder_path)
-            folder_path = new_folder_path
-
-        for item in os.listdir(folder_path):
-            item_path = os.path.join(folder_path, item)
-
-            if os.path.isdir(item_path):
-                if item in EXTENSIONS.keys():
-                    continue
-
-                sort_files(item_path)
-            elif os.path.isfile(item_path):
-                extension = item.split(".")[-1].upper()
-                all_extensions.append(extension)
-
-                for category, extensions in EXTENSIONS.items():
-                    if extension in extensions:
-                        new_name = transliterate_text(item.split(".")[0])
+                        new_name = transliterate_text(file.split(".")[0])
                         new_name = new_name.replace(" ", "_")
                         new_name = f"{new_name}.{extension}"
                         new_item_path = os.path.join(folder_path, new_name)
 
-                        os.rename(item_path, new_item_path)
-                        categories[category].append(new_name)
+                        os.rename(file_path, new_item_path)
 
                         new_folder = os.path.join(folder_path, category)
                         os.makedirs(new_folder, exist_ok=True)
@@ -80,21 +65,26 @@ def sort(folder_path):
 
                         break
 
-        print(f"Folder: {folder_path}")
-        for category, files in categories.items():
-            print(f"{category.capitalize()}: {', '.join(files)}")
+                all_extensions.add(extension)
 
-        return categories, all_extensions
+        return sorted_categories, sorted(all_extensions)
 
-    sorted_categories, all_extensions = sort_files(folder_path)
+    if not os.path.exists(folder_path):
+        print(f"Error: Folder '{folder_path}' does not exist.")
+        return {}, []  # Return empty values to handle the case when the folder doesn't exist
 
-    known_extensions = set(all_extensions).intersection(set(sum(EXTENSIONS.values(), [])))
-    print(f"\nИзвестные расширения: {', '.join(known_extensions)}")
-
-    unknown_extensions = [ext for ext in all_extensions if ext not in known_extensions]
-    print(f"Неизвестные расширения: {', '.join(unknown_extensions)}")
-
-    return sorted_categories
+    return sort_files(folder_path)
 
 
-sort(r"file_path")
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python main.py <folder_path>")
+        sys.exit(1)
+
+    folder_path = sys.argv[1]
+
+    sorted_categories, all_extensions = sort(folder_path)
+
+    print(f"Folder: {folder_path}")
+    for category, files in sorted_categories.items():
+        print(f"{category.capitalize()}: {', '.join(files)}")
