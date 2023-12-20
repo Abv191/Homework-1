@@ -31,24 +31,30 @@ def remove_empty_folders(folder_path):
 
 def sort(folder_path):
     def sort_files(folder_path):
+        global extension
         sorted_categories = {category: [] for category in EXTENSIONS.keys()}
         all_extensions = set()
 
         for root, dirs, files in os.walk(folder_path):
             for file in files:
                 file_path = os.path.join(root, file)
-                extension = file.split('.')[-1].upper()
+                original_extension = file.split('.')[-1]
+                upper_extension = original_extension.upper()
 
                 for category, extensions_list in EXTENSIONS.items():
-                    if extension in extensions_list:
+                    if upper_extension in extensions_list:
                         sorted_categories[category].append(file)
 
                         new_name = transliterate_text(file.split(".")[0])
                         new_name = new_name.replace(" ", "_")
-                        new_name = f"{new_name}.{extension}"
+                        new_name = f"{new_name}.{original_extension}"
                         new_item_path = os.path.join(folder_path, new_name)
 
                         os.rename(file_path, new_item_path)
+
+                        extension = original_extension
+
+                        all_extensions.add(extension)
 
                         new_folder = os.path.join(folder_path, category)
                         os.makedirs(new_folder, exist_ok=True)
@@ -71,7 +77,7 @@ def sort(folder_path):
 
     if not os.path.exists(folder_path):
         print(f"Error: Folder '{folder_path}' does not exist.")
-        return {}, []  # Return empty values to handle the case when the folder doesn't exist
+        return {}, []
 
     return sort_files(folder_path)
 
