@@ -14,7 +14,10 @@ EXTENSIONS = {
 
 
 def extract_files(archive_path, destination_folder):
-    patoolib.extract_archive(archive_path, outdir=destination_folder, verbosity=-1)
+    try:
+        patoolib.extract_archive(archive_path, outdir=destination_folder, verbosity=-1)
+    except Exception as e:
+        print(f"Error extracting archive '{archive_path}': {e}")
 
 
 def transliterate_text(text):
