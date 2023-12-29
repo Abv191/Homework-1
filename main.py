@@ -3,6 +3,7 @@ import sys
 import shutil
 import patoolib
 from transliterate import translit
+import re
 
 EXTENSIONS = {
     "images": ["JPEG", "PNG", "JPG", "SVG"],
@@ -12,17 +13,16 @@ EXTENSIONS = {
     "archives": ["ZIP", "GZ", "TAR", "RAR"]
 }
 
-
 def extract_files(archive_path, destination_folder):
     try:
         patoolib.extract_archive(archive_path, outdir=destination_folder, verbosity=-1)
     except Exception as e:
         print(f"Error extracting archive '{archive_path}': {e}")
 
-
-def transliterate_text(text):
-    return translit(text, 'ru', reversed=True)
-
+def normalize(text):
+    transliterated_text = translit(text, 'ru', reversed=True)
+    normalized_text = re.sub(r'[^a-zA-Z0-9]', '_', transliterated_text)
+    return normalized_text
 
 def remove_empty_folders(folder_path):
     for root, dirs, files in os.walk(folder_path, topdown=False):
@@ -48,7 +48,7 @@ def sort(folder_path):
                     if upper_extension in extensions_list:
                         sorted_categories[category].append(file)
 
-                        new_name = transliterate_text(file.split(".")[0])
+                        new_name = normalize(file.split(".")[0])
                         new_name = new_name.replace(" ", "_")
                         new_name = f"{new_name}.{original_extension}"
                         new_item_path = os.path.join(folder_path, new_name)
@@ -61,6 +61,8 @@ def sort(folder_path):
 
                         new_folder = os.path.join(folder_path, category)
                         os.makedirs(new_folder, exist_ok=True)
+
+                        # Здесь заменяем shutil.copy на shutil.move
                         shutil.move(new_item_path, os.path.join(new_folder, new_name))
 
                         if category == "archives":
