@@ -31,12 +31,12 @@ def remove_empty_folders(folder_path):
             if not os.listdir(dir_path):  # Check if folder is empty
                 os.rmdir(dir_path)
 
-
 def sort(folder_path):
     def sort_files(folder_path):
-        global extension
         sorted_categories = {category: [] for category in EXTENSIONS.keys()}
         all_extensions = set()
+        other_folder = os.path.join(folder_path, "other")
+        os.makedirs(other_folder, exist_ok=True)
 
         for root, dirs, files in os.walk(folder_path):
             for file in files:
@@ -44,8 +44,10 @@ def sort(folder_path):
                 original_extension = file.split('.')[-1]
                 upper_extension = original_extension.upper()
 
+                categorized = False
                 for category, extensions_list in EXTENSIONS.items():
                     if upper_extension in extensions_list:
+                        categorized = True
                         sorted_categories[category].append(file)
 
                         new_name = normalize(file.split(".")[0])
@@ -55,14 +57,11 @@ def sort(folder_path):
 
                         os.rename(file_path, new_item_path)
 
-                        extension = original_extension
-
-                        all_extensions.add(extension)
+                        all_extensions.add(original_extension)
 
                         new_folder = os.path.join(folder_path, category)
                         os.makedirs(new_folder, exist_ok=True)
 
-                        # Здесь заменяем shutil.copy на shutil.move
                         shutil.move(new_item_path, os.path.join(new_folder, new_name))
 
                         if category == "archives":
@@ -76,7 +75,13 @@ def sort(folder_path):
 
                         break
 
-                all_extensions.add(extension)
+                if not categorized:
+                    new_name = normalize(file.split(".")[0])
+                    new_name = new_name.replace(" ", "_")
+                    new_name = f"{new_name}.{original_extension}"
+                    new_item_path = os.path.join(folder_path, new_name)
+                    os.rename(file_path, new_item_path)
+                    shutil.move(new_item_path, os.path.join(other_folder, new_name))
 
         return sorted_categories, sorted(all_extensions)
 
@@ -84,8 +89,10 @@ def sort(folder_path):
         print(f"Error: Folder '{folder_path}' does not exist.")
         return {}, []
 
-    return sort_files(folder_path)
+    sorted_categories, all_extensions = sort_files(folder_path)
+    remove_empty_folders(folder_path)
 
+    return sorted_categories, all_extensions
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
